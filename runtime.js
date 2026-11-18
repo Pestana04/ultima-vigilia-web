@@ -101,6 +101,7 @@ export class ImageStore {
   constructor(renderer) {
     this.renderer = renderer;
     this.entries = new Map();
+    this.pinned = new Set();
     this.queue = [];
     this.active = 0;
     this.bytes = 0;
@@ -149,6 +150,7 @@ export class ImageStore {
   async preload(paths, progress = () => {}) {
     let loaded = 0;
     const unique = [...new Set(paths)];
+    this.pinned = new Set(unique);
     await Promise.all(unique.map(async path => {
       await this.request(path, true).promise;
       progress(++loaded / unique.length);
@@ -157,7 +159,7 @@ export class ImageStore {
   trim() {
     if (this.bytes < 600 * 1048576) return;
     for (const [path, entry] of this.entries) {
-      if (entry.texture && this.renderer.frame - entry.last > 600) {
+      if (entry.texture && !this.pinned.has(path) && this.renderer.frame - entry.last > 600) {
         this.renderer.gl.deleteTexture(entry.texture);
         this.bytes -= entry.bytes;
         this.entries.delete(path);

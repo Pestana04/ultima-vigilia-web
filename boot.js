@@ -44,7 +44,7 @@ try {
     const types = new Set([...LEVELS[state.li].explore, ...LEVELS[state.li].arena,
       ...state.enemies.map(e => e.type)]);
     if (state.li === 9) for (const type of ['devil', 'devil2', 'sentinel', 'specter', 'crawler', 'lancer']) types.add(type);
-    const paths = [];
+    const paths = [...menuPaths];
     const permanent = ['Heroi', 'Efeito', 'UltimaCena', 'UltimaFragmento', 'Retrato',
       'MolduraRetrato', 'EspadaUI', 'Brilho', 'ChamaVioleta', 'Nevoa', 'ArteHUD', 'BrasaPassagem'];
     for (const type of permanent) paths.push(...animationPaths(type));
