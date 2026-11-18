@@ -1,0 +1,43 @@
+name: Publicar Última Vigília
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v6
+      - name: Preparar publicação
+        uses: actions/configure-pages@v5
+      - name: Montar arquivos do jogo
+        run: |
+          mkdir -p _site
+          cp index.html style.css boot.js renderer.js runtime.js assets.json .nojekyll _site/
+          cp -R scripts _site/
+          curl --fail --location --retry 3 --output /tmp/midia.zip https://github.com/Pestana04/ultima-vigilia-web/releases/download/revisao-49/midia-revisao-49.zip
+          unzip -q /tmp/midia.zip -d _site
+      - name: Enviar site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
