@@ -1,0 +1,14 @@
+:root { color-scheme: dark; background: #050407; color: #e2d7e8; font-family: Georgia, serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body { display: grid; place-items: center; }
+#stage { position: relative; width: min(100vw, 177.777778vh); height: min(100vh, 56.25vw); }
+canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
+#loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #100b16; }
+#loading[hidden] { display: none; }
+#loading h1 { margin: 0 0 24px; font-size: clamp(25px, 4vw, 52px); font-weight: 400; }
+#loading p { color: #c5b7cf; font-size: clamp(12px, 1.4vw, 17px); }
+progress { width: min(300px, 65%); height: 3px; border: 0; background: #392d44; }
+progress::-webkit-progress-bar { background: #392d44; }
+progress::-webkit-progress-value { background: #bea0d3; }
+button { margin-top: 22px; padding: 10px 25px; color: #eee6f0; background: #30243c; border: 1px solid #8d75a5; font: inherit; cursor: pointer; }
