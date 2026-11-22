@@ -1,23 +1,21 @@
 import {Renderer} from './renderer.js';
 import {createRuntime, ImageStore} from './runtime.js';
 import {LEVELS} from './scripts/data.js';
+import {createLoadingScreen} from './loading/screen.js';
 
 export let gameRuntime;
 
 const canvas = document.getElementById('game');
-const loading = document.getElementById('loading');
-const progress = document.getElementById('loading-progress');
-const loadingText = document.getElementById('loading-text');
+const loading = createLoadingScreen(document.getElementById('loading'));
 const retry = document.getElementById('retry');
 retry.addEventListener('click', () => location.reload());
 
 function fail(error) {
   console.error(error);
-  loading.hidden = false;
-  loadingText.textContent = error.message || 'O carregamento foi interrompido. Tente novamente.';
-  retry.hidden = false;
+  loading.showError(error.message || 'O carregamento foi interrompido. Tente novamente.');
 }
 
+loading.show('Preparando a vigília…');
 try {
   const response = await fetch('./assets.json');
   if (!response.ok) throw Error('Não foi possível carregar os arquivos do jogo.');
@@ -31,12 +29,12 @@ try {
     .filter(choose).flatMap(animation => animation.frames.map(frame => frame.image));
   const menuTypes = ['MenuArte', 'TituloEspada', 'Ornamento'];
   const menuPaths = menuTypes.flatMap(type => animationPaths(type));
-  await images.preload(menuPaths, value => { progress.value = value; });
+  await images.preload(menuPaths, loading.setProgress);
   globalThis.runOnStartup = callback => callback(runtime);
   await import('./scripts/principal.js');
   delete globalThis.runOnStartup;
   await runtime.emit('beforeprojectstart');
-  loading.hidden = true;
+  loading.hide();
 
   function areaPaths() {
     const state = runtime.campaign?.state;
@@ -64,12 +62,10 @@ try {
     busy = true;
     const wasPlaying = runtime.campaign?.mode === 'play';
     void runtime.emit('suspend');
-    loading.hidden = false;
-    loadingText.textContent = state ? 'Preparando ' + state.lv.name + '…' : 'Preparando a vigília…';
-    progress.value = 0;
-    void images.preload(areaPaths(), value => { progress.value = value; }).then(() => {
+    loading.show(state ? 'Preparando ' + state.lv.name + '…' : 'Preparando a vigília…');
+    void images.preload(areaPaths(), loading.setProgress).then(() => {
       busy = false;
-      loading.hidden = true;
+      loading.hide();
       if (wasPlaying) runtime.campaign.resume();
       if (!suspended) void runtime.emit('resume');
       clock = performance.now();
