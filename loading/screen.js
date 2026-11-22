@@ -3,7 +3,7 @@ import {createBindings} from '../scripts/keybindings.js';
 const SCENES = ['ruinas', 'aqueduto', 'braseiro'];
 const INTERVAL_MS = 6000;
 const TIPS = [
-  keys => 'Use ' + keys.label('parry') + ' para aparar. O momento do contato faz a diferença.',
+  keys => 'Apare no momento do contato usando ' + keys.label('parry') + '. Guarde fôlego para reagir.',
   () => 'A estamina se recupera após um curto intervalo sem gasto. Guarde fôlego para esquivar.',
   keys => 'O frasco de estamina (' + keys.label('stamina') + ') dobra a regeneração passiva durante um minuto.',
   keys => 'Use ' + keys.label('dash') + ' para avançar. A habilidade precisa de tempo para ficar disponível novamente.',
@@ -16,7 +16,7 @@ const TIPS = [
   keys => 'Use ' + keys.label('jump') + ' para saltar. Você também pode atacar enquanto está no ar.',
 ];
 
-export function createLoadingScreen(root) {
+export function createLoadingScreen(root,{touch=false}={}) {
   const message = root.querySelector('#loading-text');
   const progress = root.querySelector('#loading-progress');
   const percent = root.querySelector('#loading-percent');
@@ -30,7 +30,7 @@ export function createLoadingScreen(root) {
   function refreshBindings() {
     let storage;
     try { storage = globalThis.localStorage; } catch {}
-    keys = createBindings(storage);
+    keys = touch?{label:id=>({parry:'Aparar',stamina:'Vigor',dash:'Avanço',interact:'Usar',pause:'Pausa',ult:'Ultimate',jump:'Saltar'}[id]??id)}:createBindings(storage);
   }
   function showTip() {
     tip.textContent = TIPS[nextTip](keys);
