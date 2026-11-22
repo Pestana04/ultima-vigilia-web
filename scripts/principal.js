@@ -201,6 +201,7 @@ function startCampaign(runtime){
  const muteControl={x:1096,width:44};
  let volumeDrag=null;
  let slotMode=null,slotOrigin='menu',slotConfirm=null,slotStatus='';
+ const openControls=()=>{if(runtime.touch?.enabled)runtime.touch.openEditor();else{menuPage='controls';lastScreen='';}};
  function button(g,x,y,w,h,label,action,{size=14,dim=false,align='center'}={}){
   const panel=ornament(g,x,y,w,h,'menu-botao');
   const inset=align==='left'?27:12;
@@ -227,7 +228,7 @@ function startCampaign(runtime){
   clear(menuRows);buttons.length=0;selected=0;
   controlRows.length=0;bindingStatusText=null;
   if(menuPage==='root'){
-   const entries=[['CONTINUAR',()=>game.continueGame(),!game.hasSave],['CARREGAR',()=>openSlots('load')],['NOVA VIGÍLIA',()=>{if(game.hasSave){menuPage='confirm';lastScreen='';}else startNewCampaign();}],['ÁUDIO',()=>{menuPage='audio';lastScreen='';}],['CONTROLES',()=>{menuPage='controls';lastScreen='';}],['CRÉDITOS',()=>{menuPage='credits';lastScreen='';}]];
+   const entries=[['CONTINUAR',()=>game.continueGame(),!game.hasSave],['CARREGAR',()=>openSlots('load')],['NOVA VIGÍLIA',()=>{if(game.hasSave){menuPage='confirm';lastScreen='';}else startNewCampaign();}],['ÁUDIO',()=>{menuPage='audio';lastScreen='';}],['CONTROLES',openControls],['CRÉDITOS',()=>{menuPage='credits';lastScreen='';}]];
    entries.forEach(([label,act,dim],n)=>button(menuRows,78,372+n*42,480,38,label,act,{size:18,dim,align:'left'}));
    selected=game.hasSave?0:2;
    menuText(menuRows,81,638,475,26,'Entre nas ruínas. A última lâmina ainda resiste.',10,menuInk.muted);
@@ -350,6 +351,7 @@ function startCampaign(runtime){
    const b=button(overlay,x,y,548,88,'MEMÓRIA '+String(n+1).padStart(2,'0'),()=>chooseSlot(n),{size:14,dim,align:'left'});
    b.label.setPosition(x+28,y+6);b.label.setSize(494,27);
    const description=!info.occupied?'ESPAÇO VAZIO':!info.valid?'DADOS NÃO DISPONÍVEIS':info.screen==='ending'?'CAMPANHA CONCLUÍDA':info.screen==='shop'?'REFÚGIO DAS CINZAS':`Fase ${info.phase} · ${info.phaseName}`;
+   b.detail=description+(info.valid?` · VIDA ${Math.ceil(info.hp)} / ${info.maxHp} · OURO ${info.gold} · ${slotDate(info.savedAt)}`:'');
    menuText(overlay,x+28,y+34,494,23,description,12,info.valid?menuInk.normal:menuInk.disabled);
    if(info.valid){
     menuText(overlay,x+28,y+58,290,23,`VIDA ${Math.ceil(info.hp)} / ${info.maxHp} · OURO ${info.gold}`,10,menuInk.accent);
@@ -387,6 +389,7 @@ function startCampaign(runtime){
     const locked=n>game.save.maxCleared,eq=equipped===n,own=owned.includes(n),label=eq?'EQUIPADA':own?'EQUIPAR':locked?`NÍVEL ${n}`:`${it.price} OURO`;
     const y=181+n*26;
     const b=button(overlay,x,y,570,25,it.name,()=>{if(game.buy(kind,n))lastScreen='';else flashHint='Ouro insuficiente.';},{size:11,dim:locked,align:'left'});
+    b.detail=(kind==='W'?`LÂMINA · DANO ${it.dmg}`:`ARMADURA · +${it.hp} VIDA · ${Math.round(it.def*100)}% DEF`)+` · ${label}`;
     b.label.setSize(222,25);
     menuText(overlay,x+248,y,187,25,kind==='W'?`DANO ${it.dmg}`:`+${it.hp} VIDA · ${Math.round(it.def*100)}% DEF`,10,locked?menuInk.disabled:menuInk.muted,'right');
     menuText(overlay,x+438,y,116,25,label,10,eq?menuInk.equipped:locked?menuInk.disabled:menuInk.accent,'right');
@@ -467,6 +470,7 @@ function startCampaign(runtime){
    ['REINICIAR FASE',()=>game.retry()],
    ['MENU PRINCIPAL',()=>{game.menu();menuPage='root';}],
   ];
+  if(runtime.touch?.enabled)actions.splice(4,0,['CONTROLES',openControls]);
   actions.forEach(([label,action],n)=>button(overlay,345,290+n*47,590,42,label,action,{size:17}));
  }
  function rebuildScreen(){
@@ -488,9 +492,12 @@ function startCampaign(runtime){
  const heroVoice=createHeroVoice(runtime,getAudioContext);
  const music=createMusicPlayer(runtime,getAudioContext);
  const effects=createEffects(runtime,getAudioContext,METRICS.exit);
+ runtime.addEventListener('touchgesture',()=>{heroVoice.unlock();music.unlock();effects.unlock();});
+ runtime.addEventListener('touchreset',()=>{keys.clear();pressed.clear();clickInteract=false;});
  const point=e=>L.getLayer('Interface').cssPxToLayer(e.clientX,e.clientY);
  const hit=(x,y)=>buttons.findIndex(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);
  runtime.addEventListener('keydown',e=>{
+  if(runtime.touch?.enabled&&document.activeElement?.matches?.('#touch-ui input'))return;
   if(blockedCodes.has(e.code)||e.repeat)return;
   heroVoice.unlock();music.unlock();effects.unlock();
   if(game.mode==='menu'&&menuPage==='controls'&&bindingCapture){
@@ -511,6 +518,7 @@ function startCampaign(runtime){
   heroVoice.unlock();music.unlock();effects.unlock();
   if(game.mode==='menu'&&menuPage==='controls'&&bindingCapture){captureBinding('Mouse0');return;}
   if(game.mode==='play'){
+   if(runtime.touch?.enabled&&e.pointerType==='touch')return;
    const [x,y]=L.getLayer('Mundo').cssPxToLayer(e.clientX,e.clientY);
    const atBrazier=exitBrazier?.isVisible&&game.canUseBrazier()&&
     Math.abs(x-exitBrazier.x)<=exitBrazier.width/2&&y>=exitBrazier.y-exitBrazier.height&&y<=exitBrazier.y;
@@ -793,7 +801,32 @@ function startCampaign(runtime){
   rKey.opacity=ready||transformed?1:.72;
   worldFlash.opacity=playing?Math.min(game.settings.reduceFlash?.08:.20,s.flash*.25):0;
   if(s.cine||s.finalShift||guardSceneProgress(boss)!==null)show(ui,false);
+  if(runtime.touch?.enabled){
+   for(const a of ability)for(const i of Object.values(a))i.isVisible=false;
+   for(const i of [controls,flaskKey,rKey,swordBase,swordFill,swordGlow,swordInnerGlow,bladeCoreGlow,...violetFlames.map(f=>f.i)])i.isVisible=false;
+  }
   ultimateCinema.render(slotMode?null:s.cine,game.mode,game.settings);
+ }
+ function touchMenu(){
+  if(!runtime.touch?.enabled||!buttons.length)return null;
+  const group=game.mode==='menu'?menuRows:overlay;
+  const titles=new Set(buttons.map(b=>b.label));
+  const prose=group.filter(i=>i.type==='TextoUI'&&!titles.has(i));
+  const title=prose.find(i=>i.sizePt>=24)?.text??'Última Vigília';
+  const extra=prose.filter(i=>i.sizePt<24).map(i=>i.text).filter(Boolean);
+  const audioOpen=volumeRows.length>0;
+  const rootMenu=game.mode==='menu'&&menuPage==='root'&&!slotMode;
+  const credits=game.mode==='credits'||game.mode==='menu'&&menuPage==='credits';
+  return {
+   key:lastScreen,kind:credits?'credits':audioOpen?'audio':game.mode,
+   title:rootMenu?'Última Vigília':title,
+   description:rootMenu?'A última lâmina ainda resiste.':game.mode==='shop'?extra[0]:credits?'':audioOpen?'Ajuste o volume ou toque no alto-falante para silenciar.':extra[0]??'',
+   note:credits?extra.join('\n'):game.mode==='shop'?flashHint||'Arraste a lista para ver os equipamentos. A compra equipa o item na hora.':rootMenu?'Celular: direcional e ações por toque. Ajuste as posições em Controles.':'',
+   buttons:buttons.map((b,n)=>({label:b.label.text,detail:b.detail,disabled:b.dim,
+    activate:()=>{pendingAction=b.action;},
+    audio:volumeRows[n]?{value:game.settings[volumeRows[n].channel],muted:game.settings.muted[volumeRows[n].channel],change:value=>adjustVolume(volumeRows[n],value),mute:()=>toggleMute(volumeRows[n])}:null,
+   })),
+  };
  }
  function frame(){
   const dt=Math.min(runtime.dt,1/30);time+=dt;rebuildScreen();
@@ -842,12 +875,18 @@ function startCampaign(runtime){
   if(selected!==previousSelection)paintButtons();
   if(pendingAction){const action=pendingAction;pendingAction=null;effects.play('paper-select',.64,null,true);action();pressed.clear();keys.clear();clickInteract=false;lastScreen='';}
   const input=Object.fromEntries(ACTIONS.map(a=>[a.id,['left','right','down'].includes(a.id)?bindings.held(a.id,keys):bindings.pressed(a.id,pressed)]));
-  input.skipStory=pressed.has('Space');
+  const touchInput=runtime.touch?.sample()??{};
+  for(const [id,value]of Object.entries(touchInput))input[id]||=value;
+  input.skipStory||=pressed.has('Space');
   input.interact||=clickInteract;
   game.step(input,runtime.dt);pressed.clear();clickInteract=false;
   syncAudio();
   if(!storySuspended)updateStory(game.story,game.story===storyBefore?runtime.dt:0);
   rebuildScreen();render(game.state,dt);
+  if(runtime.touch?.enabled){
+   runtime.touch.setMenu(touchMenu());
+   show(menuRows,false);show(overlay,false);logo.isVisible=false;
+  }
   if(game.mode==='shop'&&shopHint)shopHint.text=flashHint||'A próxima vigília mantém sua vida atual. Prepare a lâmina e os frascos.';
   for(const event of game.soundEvents)sound(event);
   if(game.mode==='menu')L.scrollX=640;
