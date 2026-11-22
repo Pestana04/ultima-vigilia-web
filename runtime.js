@@ -98,7 +98,7 @@ export function createRuntime(manifest, canvas) {
 }
 
 export class ImageStore {
-  constructor(renderer) {
+  constructor(renderer,{maxDimension=()=>Infinity,memoryBudget=600}={}) {
     this.renderer = renderer;
     this.entries = new Map();
     this.pinned = new Set();
@@ -106,6 +106,8 @@ export class ImageStore {
     this.active = 0;
     this.bytes = 0;
     this.failed = null;
+    this.maxDimension=maxDimension;
+    this.memoryBudget=memoryBudget*1048576;
   }
   request(path, required = false) {
     let entry = this.entries.get(path);
@@ -135,7 +137,12 @@ export class ImageStore {
     try {
       const response = await fetch(entry.path);
       if (!response.ok) throw Error('Falha ao carregar ' + entry.path + ' (' + response.status + ')');
-      const bitmap = await createImageBitmap(await response.blob(), {premultiplyAlpha: 'none'});
+      let bitmap = await createImageBitmap(await response.blob(), {premultiplyAlpha: 'none'});
+      const limit=this.maxDimension(entry.path),scale=Math.min(1,limit/Math.max(bitmap.width,bitmap.height));
+      if(scale<1){
+        const smaller=await createImageBitmap(bitmap,{resizeWidth:Math.max(1,Math.round(bitmap.width*scale)),resizeHeight:Math.max(1,Math.round(bitmap.height*scale)),resizeQuality:'high',premultiplyAlpha:'none'}).catch(()=>null);
+        if(smaller){bitmap.close();bitmap=smaller;}
+      }
       entry.bytes = bitmap.width * bitmap.height * 4;
       entry.texture = this.renderer.upload(bitmap);
       bitmap.close();
@@ -157,13 +164,13 @@ export class ImageStore {
     }));
   }
   trim() {
-    if (this.bytes < 600 * 1048576) return;
+    if (this.bytes < this.memoryBudget) return;
     for (const [path, entry] of this.entries) {
       if (entry.texture && !this.pinned.has(path) && this.renderer.frame - entry.last > 600) {
         this.renderer.gl.deleteTexture(entry.texture);
         this.bytes -= entry.bytes;
         this.entries.delete(path);
-        if (this.bytes < 430 * 1048576) break;
+        if (this.bytes < this.memoryBudget*.72) break;
       }
     }
   }

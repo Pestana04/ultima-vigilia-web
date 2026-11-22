@@ -5,8 +5,7 @@
     "Mateus Ramos",
     "Vitório Ribeiro"
   ],
-  "versao": "Revisão 49 com carregamento web ilustrado",
-  "codigo_web_commit": "e48f9ce8943fbf3c98ccf707ffb89d1acaf9cc7c",
+  "versao": "Revisão 49 com carregamento ilustrado e controles móveis",
   "jogavel": "https://pestana04.github.io/ultima-vigilia-web/",
   "midia": {
     "arquivo": "midia-revisao-49.zip",
@@ -19,5 +18,7 @@
     "url": "https://github.com/Pestana04/ultima-vigilia-web/releases/download/revisao-49/Ultima-Vigilia-Revisao-49-Creditos-da-Vigilia.c3p",
     "bytes": 284612985,
     "sha256": "5c78a547df01ef7610048097927be811a1975162933a136e2410c999738df683"
-  }
+  },
+  "codigo_web_commit_base": "e48f9ce8943fbf3c98ccf707ffb89d1acaf9cc7c",
+  "codigo_web_versao": "mobile-v1"
 }

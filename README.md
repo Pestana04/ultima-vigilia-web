@@ -27,7 +27,15 @@ A versão web reproduz a lógica da Revisão 49 por meio de uma camada própria 
 
 ## Como jogar
 
-Abra o **[link jogável](https://pestana04.github.io/ultima-vigilia-web/)** em um navegador de computador com teclado, mouse e suporte a WebGL. A primeira abertura e a entrada em uma fase podem levar mais tempo enquanto os recursos são baixados. Não é necessário instalar o Construct para jogar no site.
+Abra o **[link jogável](https://pestana04.github.io/ultima-vigilia-web/)** em um navegador com suporte a WebGL, no computador ou celular. A primeira abertura e a entrada em uma fase podem levar mais tempo enquanto os recursos são baixados. Não é necessário instalar o Construct para jogar no site.
+
+### No celular
+
+O jogo reconhece celulares e tablets com toque e mostra um direcional à esquerda e botões de ação à direita. É possível mover e atacar ao mesmo tempo com dedos diferentes. Segure Atacar para continuar os golpes; para descer de uma plataforma, puxe o direcional para baixo e toque Saltar.
+
+Em **Controles**, no menu inicial ou na pausa, arraste os botões e toque **Salvar**. As posições ficam guardadas neste navegador, separadamente para horizontal e vertical. **Restaurar padrão** recupera a disposição original da orientação atual; **Cancelar** descarta o ajuste em andamento.
+
+Há botões para pausa, interação, frascos e para pular a narração. Loja, saves, créditos e áudio possuem menus próprios para toque, com rolagem e alvos maiores. O botão de tela cheia funciona nos navegadores que oferecem esse recurso. A orientação horizontal é recomendada para visualizar melhor a arena; a vertical também tem uma disposição própria.
 
 ### Controles padrão
 
@@ -105,6 +113,7 @@ O arquivo `.c3p` tem aproximadamente 271 MiB. A abertura, edição e prévia no 
 | `scripts/story-scenes.js` | Sequência narrativa e legendas |
 | `scripts/music-player.js`, `scripts/hero-voice.js`, `scripts/sound-effects.js` | Música, falas e efeitos sonoros |
 | `loading/` | Ilustrações, fonte e alternância das dicas |
+| `touch/` | Detecção de dispositivo, direcional, botões, menus móveis e editor de posições |
 | `docs/` | Capturas de tela, créditos e licença da fonte |
 | `preparar.py`, `recursos.json` | Preparação local e identificação dos pacotes |
 

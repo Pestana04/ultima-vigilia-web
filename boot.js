@@ -1,12 +1,14 @@
 import {Renderer} from './renderer.js';
-import {createRuntime, ImageStore} from './runtime.js';
+import {createRuntime, ImageStore} from './runtime.js?v=touch-2';
 import {LEVELS} from './scripts/data.js';
 import {createLoadingScreen} from './loading/screen.js';
+import {createTouchControls} from './touch/controls.js?v=touch-2';
+import {isTouchDevice} from './touch/model.js';
 
 export let gameRuntime;
 
 const canvas = document.getElementById('game');
-const loading = createLoadingScreen(document.getElementById('loading'));
+const loading = createLoadingScreen(document.getElementById('loading'),{touch:isTouchDevice()});
 const retry = document.getElementById('retry');
 retry.addEventListener('click', () => location.reload());
 
@@ -21,9 +23,11 @@ try {
   if (!response.ok) throw Error('Não foi possível carregar os arquivos do jogo.');
   const manifest = await response.json();
   const renderer = new Renderer(canvas);
-  const images = new ImageStore(renderer);
   const runtime = createRuntime(manifest, canvas);
   gameRuntime = runtime;
+  const touch = createTouchControls({onGesture:()=>{void runtime.emit('touchgesture');},onReset:()=>{void runtime.emit('touchreset');}});
+  runtime.touch=touch;
+  const images = new ImageStore(renderer,touch.enabled?{maxDimension:path=>/\/(heroi|inimigo)-/.test(path)?512:1024,memoryBudget:220}:{});
   let suspended = document.hidden, clock = performance.now(), busy = false, plan = 'menu';
   const animationPaths = (type, choose = () => true) => manifest.types[type].animations
     .filter(choose).flatMap(animation => animation.frames.map(frame => frame.image));
@@ -31,7 +35,7 @@ try {
   const menuPaths = menuTypes.flatMap(type => animationPaths(type));
   await images.preload(menuPaths, loading.setProgress);
   globalThis.runOnStartup = callback => callback(runtime);
-  await import('./scripts/principal.js');
+  await import('./scripts/principal.js?v=touch-2');
   delete globalThis.runOnStartup;
   await runtime.emit('beforeprojectstart');
   loading.hide();
@@ -95,9 +99,13 @@ try {
     images.trim();
   }
   const forward = event => {
-    if (busy || suspended) return;
+    if (busy || suspended || touch.editing) return;
+    if(touch.enabled&&(event.target?.closest?.('#touch-ui')||document.activeElement?.matches?.('#touch-ui input'))&&event.code!=='Escape')return;
     if (event.type === 'keydown' && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(event.code)) event.preventDefault();
-    if (event.type === 'pointerdown') canvas.focus();
+    if (event.type === 'pointerdown') {
+      canvas.focus();
+      if(event.pointerType==='touch'){event.preventDefault();canvas.setPointerCapture(event.pointerId);}
+    }
     void runtime.emit(event.type, event);
   };
   for (const type of ['keydown', 'keyup']) window.addEventListener(type, forward);
@@ -107,6 +115,7 @@ try {
   });
   canvas.addEventListener('contextmenu', event => event.preventDefault());
   const suspend = () => {
+    touch.clear();
     if (suspended) return;
     suspended = true;
     void runtime.emit('suspend');
@@ -135,6 +144,9 @@ try {
         if (!busy) void runtime.emit('tick');
       }
       draw();
+      const game=runtime.campaign;
+      touch.sync({mode:game?.mode,state:game?.state,save:game?.save,blocked:busy||suspended,
+        interact:game?.mode==='play'&&(game.canUseBrazier()||game.canUseFinalStairs())});
     } catch (error) { fail(error); return; }
     requestAnimationFrame(frame);
   }
